@@ -1,6 +1,6 @@
 # selenium-cucumber-es6
 
-JavaScript browser automation framework template using official [selenium-webdriver v3](http://seleniumhq.github.io/selenium/docs/api/javascript/ "view webdriver js documentation") and [cucumber-js v6](https://github.com/cucumber/cucumber-js "view cucumber js documentation"). This repository is based on John Doherty's [selenium-cucumber-js] repository with upgrade to ES6 and new version of components. You can use it as a stand alone npm module or clone this repository as a template for your tests.
+JavaScript browser automation framework template using official [selenium-webdriver v3](http://seleniumhq.github.io/selenium/docs/api/javascript/ "view webdriver js documentation") and [cucumber-js v6](https://github.com/cucumber/cucumber-js "view cucumber js documentation"). This repository is based on John Doherty's [selenium-cucumber-js](https://github.com/john-doherty/selenium-cucumber-js) repository with upgrade to ES6 and new version of components. You can use it as a stand alone npm module or clone this repository as a template for your tests.
 
 **Table of Contents**
 
