@@ -8,17 +8,16 @@ module.exports = {
      * @example
      *      helpers.loadPage('http://www.google.com');
      */
-    loadPage: function(url, waitInSeconds) {
+    loadPage: async function(url, waitInSeconds) {
 
         // use either passed in timeout or global default
         var timeout = (waitInSeconds) ? (waitInSeconds * 1000) : DEFAULT_TIMEOUT;
 
         // load the url and wait for it to complete
-        return driver.get(url).then(function() {
+        await driver.get(url)
 
-            // now wait for the body element to be present
-            return driver.wait(until.elementLocated(by.css('body')), timeout);
-        });
+        // now wait for the body element to be present
+        await driver.wait(until.elementLocated(by.css('body')), timeout);
     },
 
     /**
@@ -29,12 +28,11 @@ module.exports = {
      * @example
      *      helpers.getAttributeValue('body', 'class');
      */
-    getAttributeValue: function (htmlCssSelector, attributeName) {
+    getAttributeValue: async function (htmlCssSelector, attributeName) {
 
         // get the element from the page
-        return driver.findElement(by.css(htmlCssSelector)).then(function(el) {
-            return el.getAttribute(attributeName);
-        });
+        let el = await driver.findElement(by.css(htmlCssSelector));
+        return el.getAttribute(attributeName);
     },
 
     /**
@@ -80,11 +78,10 @@ module.exports = {
      * @example
      *      helpers.getFirstElementContainingText('nav[role="navigation"] ul li a', 'Safety Boots').click();
      */
-    getFirstElementContainingText: function(cssSelector, textToMatch) {
+    getFirstElementContainingText: async function(cssSelector, textToMatch) {
 
-        return helpers.getElementsContainingText(cssSelector, textToMatch).then(function(elements) {
-            return elements[0];
-        });
+        let elements = helpers.getElementsContainingText(cssSelector, textToMatch);
+        return elements[0];
     },
 
     /**
@@ -145,14 +142,13 @@ module.exports = {
         var timeoutMessage = attributeName + ' does not equal ' + attributeValue + ' after ' + waitInMilliseconds + ' milliseconds';
 
         // repeatedly execute the test until it's true or we timeout
-        return driver.wait(function() {
+        return driver.wait(async function() {
 
             // get the html attribute value using helper method
-            return helpers.getAttributeValue(elementSelector, attributeName).then(function(value) {
+            let value = await helpers.getAttributeValue(elementSelector, attributeName);
 
-                // inspect the value
-                return value === attributeValue;
-            });
+            // inspect the value
+            return value === attributeValue;
 
         }, timeout, timeoutMessage);
     },
@@ -175,14 +171,13 @@ module.exports = {
         var timeoutMessage = attributeName + ' does not exists after ' + waitInMilliseconds + ' milliseconds';
 
         // repeatedly execute the test until it's true or we timeout
-        return driver.wait(function() {
+        return driver.wait(async function() {
 
             // get the html attribute value using helper method
-            return helpers.getAttributeValue(elementSelector, attributeName).then(function(value) {
+            let value = await helpers.getAttributeValue(elementSelector, attributeName);
 
-                // attribute exists if value is not null
-                return value !== null;
-            });
+            // attribute exists if value is not null
+            return value !== null;
 
         }, timeout, timeoutMessage);
     },
@@ -205,14 +200,13 @@ module.exports = {
         var timeoutMessage = attributeName + ' still exists after ' + waitInMilliseconds + ' milliseconds';
 
         // repeatedly execute the test until it's true or we timeout
-        return driver.wait(function() {
+        return driver.wait(async function() {
 
             // get the html attribute value using helper method
-            return helpers.getAttributeValue(elementSelector, attributeName).then(function(value) {
+            let value = await helpers.getAttributeValue(elementSelector, attributeName);
 
-                // attribute exists if value is not null
-                return value === null;
-            });
+            // attribute exists if value is not null
+            return value === null;
 
         }, timeout, timeoutMessage);
     },
@@ -220,11 +214,10 @@ module.exports = {
     /**
      * Get the content value of a :before pseudo element
      * @param {string} cssSelector - css selector of element to inspect
-     * @returns {Promise} executes .then with value
+     * @returns {Promise} promise object
      * @example
-     *      helpers.getPseudoElementBeforeValue('body header').then(function(value) {
-     *          console.log(value);
-     *      });
+     *      let value = await helpers.getPseudoElementBeforeValue('body header')
+     *      console.log(value);
      */
     getPseudoElementBeforeValue: function(cssSelector) {
 
@@ -242,11 +235,10 @@ module.exports = {
     /**
      * Get the content value of a :after pseudo element
      * @param {string} cssSelector - css selector of element to inspect
-     * @returns {Promise} executes .then with value
+     * @returns {Promise} promise object
      * @example
-     *      helpers.getPseudoElementAfterValue('body header').then(function(value) {
-     *          console.log(value);
-     *      });
+     *      let value = await helpers.getPseudoElementAfterValue('body header');
+     *      console.log(value);
      */
     getPseudoElementAfterValue: function(cssSelector) {
 
@@ -261,15 +253,16 @@ module.exports = {
         return driver.executeScript(getAfterContentValue, cssSelector);
     },
 
-    clearCookies: function() {
-        return driver.manage().deleteAllCookies();
+    clearCookies: async function() {
+        await driver.manage().deleteAllCookies();
     },
 
-    clearStorages: function() {
-        return driver.executeScript('window.localStorage.clear(); window.sessionStorage.clear();')
+    clearStorages: async function() {
+        await driver.executeScript('window.localStorage.clear(); window.sessionStorage.clear();')
     },
 
-    clearCookiesAndStorages: function() {
-        return helpers.clearCookies().then(helpers.clearStorages());
+    clearCookiesAndStorages: async function() {
+        await helpers.clearCookies();
+        await helpers.clearStorages();
     }
 };

@@ -5,43 +5,66 @@
  * it is responsible for setting up and exposing the driver/browser/expect/assert etc required within each step definition
  */
 
-var fs = require('fs-plus');
-var path = require('path');
-var requireDir = require('require-dir');
-var merge = require('merge');
-var chalk = require('chalk');
-var selenium = require('selenium-webdriver');
-var expect = require('chai').expect;
-var assert = require('chai').assert;
-var reporter = require('cucumber-html-reporter');
-var cucumberJunit = require('cucumber-junit');
+const fs = require('fs-plus');
+const path = require('path');
+const requireDir = require('require-dir');
+const merge = require('merge');
+const chalk = require('chalk');
+const { By, Key, until } = require('selenium-webdriver');
+const chai = require("chai");
+const chaiAsPromised = require("chai-as-promised");
+chai.use(chaiAsPromised);
+
+const reporter = require('cucumber-html-reporter');
+const { setDefaultTimeout, BeforeAll, Before, After, AfterAll, Status, Given, When, Then  } = require('cucumber');
 
 // Initialize the eyes SDK and set your private API key.
-var Eyes = require('eyes.selenium').Eyes;
+const Eyes = require('eyes.selenium').Eyes;
 
 // drivers
-var FireFoxDriver = require('./firefoxDriver.js');
-var PhantomJSDriver = require('./phantomDriver.js');
-var ElectronDriver = require('./electronDriver.js');
-var ChromeDriver = require('./chromeDriver');
+const FireFoxDriver = require('./firefoxDriver.js');
+const ElectronDriver = require('./electronDriver.js');
+const ChromeDriver = require('./chromeDriver');
+
+// List of variables to expose globally and therefore accessible within each step definition
+const runtime = {
+    driver: null,               // the browser object
+    eyes: null,
+    Given: Given,               // global operations for Cucumber
+    When: When,                 // 
+    Then: Then,                 //    
+    By: By,                     // in keeping with Java expose selenium By
+    by: By,                     // provide a javascript lowercase version
+    until: until,               // provide easy access to Selenium until methods
+    key: Key,                   // Selenium class for keyboard codes
+    Key: Key,                   // in keeping with Java expose selenium Key
+    selenium: { Key: Key },     // for backward compatibility with current selenium-cucumber-js scripts
+    expect: chai.expect,        // expose chai expect to allow variable testing
+    assert: chai.assert,        // expose chai assert to allow variable testing
+    trace: consoleInfo,         // expose an info method to log output to the console in a readable/visible format
+    page: global.page || {},    // empty page objects placeholder
+    shared: global.shared || {} // empty shared objects placeholder
+};
+
+// expose properties to step definition methods via global variables
+Object.keys(runtime).forEach(function (key) {
+
+    // make property/method available as a global (no this. prefix required)
+    global[key] = runtime[key];
+});
 
 /**
- * create the selenium browser based on global var set in index.js
+ * create the selenium browser based on global let set in index.js
  * @returns {ThenableWebDriver} selenium web driver
  */
 function getDriverInstance() {
 
-    var driver;
+    let driver;
 
     switch (browserName || '') {
 
         case 'firefox': {
             driver = new FireFoxDriver();
-        }
-            break;
-
-        case 'phantomjs': {
-            driver = new PhantomJSDriver();
         }
             break;
 
@@ -57,7 +80,7 @@ function getDriverInstance() {
 
         // try to load from file
         default: {
-            var driverFileName = path.resolve(process.cwd(), browserName);
+            let driverFileName = path.resolve(process.cwd(), browserName);
 
             if (!fs.isFileSync(driverFileName)) {
                 throw new Error('Could not find driver file: ' + driverFileName);
@@ -78,7 +101,7 @@ function getEyesInstance() {
 
     if (global.eyesKey) {
 
-        var eyes = new Eyes();
+        let eyes = new Eyes();
 
         // retrieve eyes api key from config file in the project root as defined by the user
         eyes.setApiKey(global.eyesKey);
@@ -90,42 +113,12 @@ function getEyesInstance() {
 }
 
 function consoleInfo() {
-    var args = [].slice.call(arguments),
-        output = chalk.bgBlue.white('\n>>>>> \n' + args + '\n<<<<<\n');
+    let args = [].slice.call(arguments),
+        output = chalk.bgBlue.yellowBright('\n >>>>> \n' + args + '\n <<<<< \n');
 
     console.log(output);
 }
 
-/**
- * Creates a list of variables to expose globally and therefore accessible within each step definition
- * @returns {void}
- */
-function createWorld() {
-
-    var runtime = {
-        driver: null,               // the browser object
-        eyes: null,
-        selenium: selenium,         // the raw nodejs selenium driver
-        By: selenium.By,            // in keeping with Java expose selenium By
-        by: selenium.By,            // provide a javascript lowercase version
-        until: selenium.until,      // provide easy access to selenium until methods
-        expect: expect,             // expose chai expect to allow variable testing
-        assert: assert,             // expose chai assert to allow variable testing
-        trace: consoleInfo,         // expose an info method to log output to the console in a readable/visible format
-        page: global.page || {},    // empty page objects placeholder
-        shared: global.shared || {} // empty shared objects placeholder
-    };
-
-    // expose properties to step definition methods via global variables
-    Object.keys(runtime).forEach(function (key) {
-        if (key === 'driver' && browserTeardownStrategy !== 'always') {
-            return;
-        }
-
-        // make property/method available as a global (no this. prefix required)
-        global[key] = runtime[key];
-    });
-}
 
 /**
  * Import shared objects, pages object and helpers into global scope
@@ -136,14 +129,14 @@ function importSupportObjects() {
     // import shared objects from multiple paths (after global vars have been created)
     if (global.sharedObjectPaths && Array.isArray(global.sharedObjectPaths) && global.sharedObjectPaths.length > 0) {
 
-        var allDirs = {};
+        let allDirs = {};
 
         // first require directories into objects by directory
         global.sharedObjectPaths.forEach(function (itemPath) {
 
             if (fs.existsSync(itemPath)) {
 
-                var dir = requireDir(itemPath, { camelcase: true, recurse: true });
+                let dir = requireDir(itemPath, { recurse: true });
 
                 merge(allDirs, dir);
             }
@@ -160,22 +153,23 @@ function importSupportObjects() {
     // import page objects (after global vars have been created)
     if (global.pageObjectPath && fs.existsSync(global.pageObjectPath)) {
 
-        // require all page objects using camel case as object names
-        global.page = requireDir(global.pageObjectPath, { camelcase: true, recurse: true });
+        // require all page objects using their names as object names
+        global.page = requireDir(global.pageObjectPath, { recurse: true });
     }
 
     // add helpers
     global.helpers = require('../runtime/helpers.js');
 }
 
-function closeBrowser() {
+
+async function closeBrowser() {
     // firefox quits on driver.close on the last window
-    return driver.close().then(function () {
-        if (browserName !== 'firefox'){
-            return driver.quit();
-        }
-    });
+    await driver.close();
+    if (browserName !== 'firefox'){
+        await driver.quit();
+    }
 }
+
 
 function teardownBrowser() {
     switch (browserTeardownStrategy) {
@@ -188,80 +182,74 @@ function teardownBrowser() {
     }
 }
 
-// export the "World" required by cucumber to allow it to expose methods within step def's
-module.exports = function () {
 
-    createWorld();
+setDefaultTimeout(global.DEFAULT_TIMEOUT);
+
+
+//import all required components
+BeforeAll(function () {
     importSupportObjects();
+});
 
-    // this.World must be set!
-    this.World = createWorld;
 
-    // set the default timeout for all tests
-    this.setDefaultTimeout(global.DEFAULT_TIMEOUT);
+// create the driver and applitools eyes before scenario if it's not instantiated
+Before(async function () {
+    if (!global.driver || browserTeardownStrategy === 'always') {
+        global.driver = await getDriverInstance();
+    }
 
-    // create the driver and applitools eyes before scenario if it's not instantiated
-    this.registerHandler('BeforeScenario', function (scenario) {
+    if (!global.eyes) {
+        global.eyes = getEyesInstance();
+    }
+});
 
-        if (!global.driver) {
-            global.driver = getDriverInstance();
+
+// executed after each scenario (always closes the browser to ensure fresh tests)
+After(async function (scenario) {
+    if (scenario.result.status === Status.FAILED && !global.noScreenshot) {
+        // add a screenshot to the error report
+        let screenShot = await driver.takeScreenshot();    
+        this.attach(new Buffer(screenShot, 'base64'), 'image/png');
+        await teardownBrowser();
+        if (eyes) {
+            // If the test was aborted before eyes.close was called ends the test as aborted.
+            await eyes.abortIfNotClosed();
         }
+    } else {
+         await teardownBrowser();
+    }
+});
 
-        if (!global.eyes) {
-            global.eyes = getEyesInstance();
-        }
-    });
 
-    this.registerHandler('AfterFeatures', function (features, done) {
+//import all required components
+BeforeAll(function () {
+    importSupportObjects();
+});
 
-        var cucumberReportPath = path.resolve(global.reportsPath, 'cucumber-report.json');
 
-        if (global.reportsPath && fs.existsSync(global.reportsPath)) {
+//generate report after all features
+AfterAll(async function () {
 
-            // generate the HTML report
-            var reportOptions = {
-                theme: 'bootstrap',
-                jsonFile: cucumberReportPath,
-                output: path.resolve(global.reportsPath, 'cucumber-report.html'),
-                reportSuiteAsScenarios: true,
-                launchReport: (!global.disableLaunchReport),
-                ignoreBadJsonFile: true
-            };
+    if (browserTeardownStrategy !== 'always') {
+        await closeBrowser();
+    }
+    
+    var cucumberReportPath = path.resolve(global.reportsPath, 'cucumber-report.json');
 
+    if (global.reportsPath && fs.existsSync(global.reportsPath)) {
+
+        // generate the HTML report
+        var reportOptions = {
+            theme: 'bootstrap',
+            jsonFile: cucumberReportPath,
+            output: path.resolve(global.reportsPath, 'cucumber-report.html'),
+            reportSuiteAsScenarios: true,
+            launchReport: (global.enableLaunchReport),
+            ignoreBadJsonFile: true
+        };
+
+        setTimeout(() => {
             reporter.generate(reportOptions);
-
-            // grab the file data
-            var reportRaw = fs.readFileSync(cucumberReportPath).toString().trim();
-            var xmlReport = cucumberJunit(reportRaw);
-            var junitOutputPath = path.resolve(global.junitPath, 'junit-report.xml');
-
-            fs.writeFileSync(junitOutputPath, xmlReport);
-        }
-
-        if (browserTeardownStrategy !== 'always') {
-            closeBrowser().then(() => done());
-        }
-        else {
-            new Promise((resolve) => resolve(done()));
-        }
-    });
-
-    // executed after each scenario (always closes the browser to ensure fresh tests)
-    this.After(function (scenario) {
-        if (scenario.isFailed() && !global.noScreenshot) {
-            // add a screenshot to the error report
-            return driver.takeScreenshot().then(function (screenShot) {
-
-                scenario.attach(new Buffer(screenShot, 'base64'), 'image/png');
-
-                return teardownBrowser().then(function() {
-                    if (eyes) {
-                        // If the test was aborted before eyes.close was called ends the test as aborted.
-                        return eyes.abortIfNotClosed();
-                    }
-                });
-            });
-        }
-        return teardownBrowser();
-    });
-};
+        }, 1000);
+    }
+});

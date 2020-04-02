@@ -17,10 +17,9 @@ module.exports = {
         return helpers.clickHiddenElement(page.mammothWorkwear.elements.productItem, containingText);
     },
 
-    titleContains: function(expectedTitle) {
+    titleContains: async function(expectedTitle) {
 
-        return driver.getTitle().then(function(pageTitle) {
-            expect(pageTitle).to.contain(expectedTitle);
-        });
+        let pageTitle = await driver.getTitle();
+        expect(pageTitle).to.contain(expectedTitle);
     }
 };

@@ -2,11 +2,11 @@
 
 'use strict';
 
-var fs = require('fs-plus');
-var path = require('path');
-var program = require('commander');
-var pjson = require('./package.json');
-var cucumber = require('cucumber');
+const fs = require('fs-plus');
+const path = require('path');
+const program = require('commander');
+const pjson = require('./package.json');
+const cucumber = require('cucumber');
 
 function collectPaths(value, paths) {
     paths.push(value);
@@ -14,15 +14,13 @@ function collectPaths(value, paths) {
 }
 
 function coerceInt(value, defaultValue) {
-
-    var int = parseInt(value);
-
+    let int = parseInt(value);
     if (typeof int === 'number') return int;
-
     return defaultValue;
 }
 
-var config = {
+const config = {
+    environment: 'dev',
     steps: './step-definitions',
     pageObjects: './page-objects',
     sharedObjects: './shared-objects',
@@ -33,7 +31,7 @@ var config = {
     timeout: 15000
 };
 
-var configFileName = path.resolve(process.cwd(), 'selenium-cucumber-js.json');
+let configFileName = path.resolve(process.cwd(), 'selenium-cucumber-es6.json');
 
 if (fs.isFileSync(configFileName)) {
     config = Object.assign(config, require(configFileName));
@@ -42,6 +40,7 @@ if (fs.isFileSync(configFileName)) {
 program
     .version(pjson.version)
     .description(pjson.description)
+    .option('-e, --environment <name>', 'name of environment. defaults to ' + config.environment, config.environment)
     .option('-s, --steps <path>', 'path to step definitions. defaults to ' + config.steps, config.steps)
     .option('-p, --pageObjects <path>', 'path to page objects. defaults to ' + config.pageObjects, config.pageObjects)
     .option('-o, --sharedObjects [paths]', 'path to shared objects (repeatable). defaults to ' + config.sharedObjects, collectPaths, [config.sharedObjects])
@@ -54,11 +53,11 @@ program
     .option('-f, --featureFiles <paths>', 'comma-separated list of feature files to run or path to directory defaults to ' + config.featureFiles, config.featureFiles)
     .option('-x, --timeOut <n>', 'steps definition timeout in milliseconds. defaults to ' + config.timeout, coerceInt, config.timeout)
     .option('-n, --noScreenshot [optional]', 'disable auto capturing of screenshots when an error is encountered')
-    .option('-w, --worldParameters <JSON>', 'JSON object to pass to cucumber-js world constructor. defaults to empty', config.worldParameters)
+    .option('-w, --worldParameters <JSON>', 'JSON object to pass to cucumber-es6 world constructor. defaults to empty', config.worldParameters)
     .parse(process.argv);
 
 program.on('--help', function () {
-    console.log('  For more details please visit https://github.com/john-doherty/selenium-cucumber-js#readme\n');
+    console.log('  For more details please visit https://github.com/john-doherty/selenium-cucumber-es6#readme\n');
 });
 
 // store browserName globally (used within world.js to build driver)
@@ -99,18 +98,21 @@ process.argv.splice(2, 100);
 
 // allow specific feature files to be executed
 if (program.featureFiles) {
-    var splitFeatureFiles = program.featureFiles.split(',');
+    let splitFeatureFiles = program.featureFiles.split(',');
 
     splitFeatureFiles.forEach(function (feature) {
         process.argv.push(feature);
     });
 }
 
-// add switch to tell cucumber to produce json report files
+// add switch to tell cucumber to produce json and junit report files
 process.argv.push('-f');
-process.argv.push('pretty');
+process.argv.push('node_modules/cucumber-pretty');
 process.argv.push('-f');
 process.argv.push('json:' + path.resolve(__dirname, global.reportsPath, 'cucumber-report.json'));
+process.argv.push('-f');
+process.argv.push('node_modules/cucumber-junit-formatter:' + path.resolve(__dirname, global.reportsPath, 'junit-report.xml'));
+
 
 // add cucumber world as first required script (this sets up the globals)
 process.argv.push('-r');
@@ -139,13 +141,13 @@ process.argv.push('-S');
 //
 // execute cucumber
 //
-var cucumberCli = cucumber.Cli(process.argv);
+let cucumberCli = new cucumber.Cli({argv : process.argv, cwd: process.cwd(), stdout: process.stdout});
 
 global.cucumber = cucumber;
 
 cucumberCli.run(function (succeeded) {
 
-    var code = succeeded ? 0 : 1;
+    let code = succeeded ? 0 : 1;
 
     function exitNow() {
         process.exit(code);

@@ -1,8 +1,6 @@
-# selenium-cucumber-js
+# selenium-cucumber-es6
 
-[![Shippable branch](https://img.shields.io/shippable/5818b23bbd56670e00037040/master.svg)](https://app.shippable.com/projects/5818b23bbd56670e00037040) [![npm](https://img.shields.io/npm/dt/selenium-cucumber-js.svg)](https://www.npmjs.com/package/selenium-cucumber-js) [![Twitter Follow](https://img.shields.io/twitter/follow/MrJohnDoherty.svg?style=social&label=Twitter&style=plastic)](https://twitter.com/MrJohnDoherty)
-
-JavaScript browser automation framework using official [selenium-webdriver](http://seleniumhq.github.io/selenium/docs/api/javascript/ "view webdriver js documentation") and [cucumber-js](https://github.com/cucumber/cucumber-js "view cucumber js documentation").
+JavaScript browser automation framework template using official [selenium-webdriver v3](http://seleniumhq.github.io/selenium/docs/api/javascript/ "view webdriver js documentation") and [cucumber-js v6](https://github.com/cucumber/cucumber-js "view cucumber js documentation"). This repository is based on John Doherty's [selenium-cucumber-js] repository with upgrade to ES6 and new version of components. You can use it as a stand alone npm module or clone this repository as a template for your tests.
 
 **Table of Contents**
 
@@ -21,28 +19,37 @@ JavaScript browser automation framework using official [selenium-webdriver](http
   * [How to debug](#how-to-debug)
   * [Directory structure](#directory-structure)
 * [Demo](#demo)
-* [Bugs](#bugs)
-* [Contributing](#contributing)
-* [Troubleshooting](#troubleshooting)
-  * [IntelliJ Cucumber Plugin](#intellij-cucumber-plugin)
 
 ## Installation
 
 ```bash
-npm install selenium-cucumber-js --save-dev
+npm install selenium-cucumber-es6 --save-dev
 ```
+
+Or clone git repo:
+```bash
+git clone https://github.com/dcmarti/selenium-cucumber-es6.git
+```
+
 
 ## Usage
 
 ```bash
-node ./node_modules/selenium-cucumber-js/index.js -s ./step-definitions
+node ./node_modules/selenium-cucumber-es6/index.js -s ./step-definitions
 ```
+
+Or in cloned repo:
+```bash
+npm test -- -t @serch
+```
+
 
 ### Options
 
 ```bash
 -h, --help                          output usage information
 -V, --version                       output the version number
+-e, --environment <name>            name of environment. defaults to  dev
 -s, --steps <path>                  path to step definitions. defaults to ./step-definitions
 -p, --pageObjects <path>            path to page objects. defaults to ./page-objects
 -o, --sharedObjects [paths]         path to shared objects (repeatable). defaults to ./shared-objects
@@ -63,15 +70,35 @@ Browser    | Example
 ---------- | ---------------
 Chrome     | `-b chrome`
 Firefox    | `-b firefox`
-Phantom JS | `-b phantomjs`
 Electron   | `-b electron`
 Custom     | `-b customDriver.js`
 
-To use your own driver, create a customDriver.js file in the root of your project and provide the filename with the `-b` switch.
+To use your own driver, create a customDriver.js file in the root of your project and provide the filename with the `-b` switch. Example for Selenium grid:
+```javascript
+'use strict';
+var { Builder } = require('selenium-webdriver');
+
+/**
+ * Creates a Selenium WebDriver using Selenium grid with Chrome as the browser
+ * @returns {ThenableWebDriver} Selenium web driver
+ */
+module.exports = function() {
+
+    const gridUrl = `http://your-Selenium-grid-host:4444/wd/hub/`;
+
+    let driver = new Builder()
+    .forBrowser('chrome')
+    .usingServer(gridUrl)
+    .build();
+    
+    return driver;
+}
+```
+
 
 #### Configuration file
 
-Configuration options can be set using a `selenium-cucumber-js.json` file at the root of your project. The JSON keys use the "long name" from the command line options. For example the following duplicates default configuration:
+Configuration options can be set using a `selenium-cucumber-es6.json` file at the root of your project. The JSON keys use the "long name" from the command line options. For example the following duplicates default configuration:
 
 ```json
 {
@@ -128,28 +155,18 @@ Value      |  Description
 
 Step definitions act as the glue between features files and the actual system under test.
 
-_To avoid confusion **always** return a JavaScript promise your step definition in order to let cucumber know when your task has completed._
+_To avoid confusion **always** use async notation._
 
 ```javascript
 // ./step-definitions/google-search-steps.js
 
-module.exports = function () {
+    Then('I should see some results', function () {
 
-    this.Then(/^I should see some results$/, function () {
-
-        // driver wait returns a promise so return that
-        return driver.wait(until.elementsLocated(by.css('div.g')), 10000).then(function(){
-
-            // return the promise of an element to the following then.
-            return driver.findElements(by.css('div.g'));
-        })
-        .then(function (elements) {
-
-            // verify this element has children
-            expect(elements.length).to.not.equal(0);
-        });
+        // wait for element to be present
+        await driver.wait(until.elementsLocated(by.css('div.g')), 10000);
+        let elements = await driver.findElements(by.css('div.g'));
+        expect(elements.length).to.not.equal(0);
     });
-};
 ```
 
 The following variables are available within the ```Given()```, ```When()``` and ```Then()``` functions:
@@ -157,11 +174,11 @@ The following variables are available within the ```Given()```, ```When()``` and
 | Variable    | Description |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 | `driver`    | an instance of [selenium web driver](http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/lib/webdriver_exports_WebDriver.html) (_the browser_)
-| `selenium`  | the raw [selenium-webdriver](http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/) module, providing access to static properties/methods
 | `page`      | collection of **page** objects loaded from disk and keyed by filename
 | `shared`    | collection of **shared** objects loaded from disk and keyed by filename
-| `helpers`   | a collection of [helper methods](runtime/helpers.js) _things selenium does not provide but really should!_
+| `helpers`   | a collection of [helper methods](runtime/await helpers.js) _things selenium does not provide but really should!_
 | `by`        | the selenium [By](http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/index_exports_By.html) class used to locate elements on the page
+| `key`      | the selenium [key](http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/index_exports_Key.html) class used to wait for elements/events
 | `until`     | the selenium [until](http://seleniumhq.github.io/selenium/docs/api/javascript/module/selenium-webdriver/lib/until.html) class used to wait for elements/events
 | `expect`    | instance of [chai expect](http://chaijs.com/api/bdd/) to ```expect('something').to.equal('something')```
 | `assert`    | instance of [chai assert](http://chaijs.com/api/assert/) to ```assert.isOk('everything', 'everything is ok')```
@@ -169,7 +186,7 @@ The following variables are available within the ```Given()```, ```When()``` and
 
 ### Page objects
 
-Page objects are accessible via a global ```page``` object and are automatically loaded from ```./page-objects``` _(or the path specified using the ```-p``` switch)_. Page objects are exposed via a camel-cased version of their filename, for example ```./page-objects/google-search.js``` becomes ```page.googleSearch```. You can also use subdirectories, for example ```./page-objects/dir/google-search.js``` becomes ```page.dir.googleSearch```.
+Page objects are accessible via a global ```page``` object and are automatically loaded from ```./page-objects``` _(or the path specified using the ```-p``` switch)_. Page objects are exposed via their filename, for example ```./page-objects/googleSearch.js``` becomes ```page.googleSearch```. You can also use subdirectories, for example ```./page-objects/dir/googleSearch.js``` becomes ```page.dir.googleSearch```.
 
 Page objects also have access to the same runtime variables available to step definitions.
 
@@ -206,13 +223,12 @@ And its usage within a step definition:
 
 ```js
 // ./step-definitions/google-search-steps.js
-this.When(/^I search Google for "([^"]*)"$/, function (searchQuery) {
+When('I search Google for {string}', function (searchQuery) {
 
-    return helpers.loadPage('http://www.google.com').then(function() {
+return await helpers.loadPage('http://www.google.com').then(function() {
 
-        // use a method on the page object which also returns a promise
-        return page.googleSearch.performSearch(searchQuery);
-    })
+    // use a method on the page object which also returns a promise
+    return page.googleSearch.performSearch(searchQuery);
 });
 ```
 
@@ -239,7 +255,7 @@ And its usage within a step definition:
 ```js
 module.exports = function () {
 
-    this.Given(/^I am logged in"$/, function () {
+    this.Given('I am logged in', function () {
 
         driver.findElement(by.name('usn')).sendKeys(shared.testData.username);
         driver.findElement(by.name('pass')).sendKeys(shared.testData.password);
@@ -249,52 +265,52 @@ module.exports = function () {
 
 ### Helpers
 
-`selenium-cucumber-js` contains a few helper methods to make working with selenium a bit easier, those methods are:
+`selenium-cucumber-es6` contains a few helper methods to make working with selenium a bit easier, those methods are:
 
 ```js
 // Load a URL, returning only when the <body> tag is present
-helpers.loadPage('http://www.google.com');
+await helpers.loadPage('http://www.google.com');
 
 // get the value of a HTML attribute
-helpers.getAttributeValue('body', 'class');
+await helpers.getAttributeValue('body', 'class');
 
 // get a list of elements matching a query selector who's inner text matches param.
-helpers.getElementsContainingText('nav[role="navigation"] ul li a', 'Safety Boots');
+await helpers.getElementsContainingText('nav[role="navigation"] ul li a', 'Safety Boots');
 
 // get first elements matching a query selector who's inner text matches textToMatch param
-helpers.getFirstElementContainingText('nav[role="navigation"] ul li a', 'Safety Boots');
+await helpers.getFirstElementContainingText('nav[role="navigation"] ul li a', 'Safety Boots');
 
 // click element(s) that are not visible (useful in situations where a menu needs a hover before a child link appears)
-helpers.clickHiddenElement('nav[role="navigation"] ul li a','Safety Boots');
+await helpers.clickHiddenElement('nav[role="navigation"] ul li a','Safety Boots');
 
 // wait until a HTML attribute equals a particular value
-helpers.waitUntilAttributeEquals('html', 'data-busy', 'false', 5000);
+await helpers.waitUntilAttributeEquals('html', 'data-busy', 'false', 5000);
 
 // wait until a HTML attribute exists
-helpers.waitUntilAttributeExists('html', 'data-busy', 5000);
+await helpers.waitUntilAttributeExists('html', 'data-busy', 5000);
 
 // wait until a HTML attribute no longer exists
-helpers.waitUntilAttributeDoesNotExists('html', 'data-busy', 5000);
+await helpers.waitUntilAttributeDoesNotExists('html', 'data-busy', 5000);
 
 // get the content value of a :before pseudo element
-helpers.getPseudoElementBeforeValue('body header');
+await helpers.getPseudoElementBeforeValue('body header');
 
 // get the content value of a :after pseudo element
-helpers.getPseudoElementAfterValue('body header');
+await helpers.getPseudoElementAfterValue('body header');
 
 // clear the cookies
-helpers.clearCookies();
+await helpers.clearCookies();
 
 // clear both local and session storages
-helpers.clearStorages();
+await helpers.clearStorages();
 
 // clear both cookies and storages
-helpers.clearCookiesAndStorages('body header');
+await helpers.clearCookiesAndStorages('body header');
 ```
 
 ### Visual Comparison
 
-The `selenium-cucumber-js` framework uses [Applitools Eyes](https://applitools.com/) to add visual checkpoints to your JavaScript Selenium tests. It takes care of getting screenshots of your application from the underlying WebDriver, sending them to the Applitools Eyes server for validation and failing the test when differences are detected. To perform visual comparisons within your tests, obtain an [Applitools Eyes](https://applitools.com/) API Key and assign it to the `eye_key` property of the `selenium-cucumber-js.json` config file in the root of your project.
+The `selenium-cucumber-es6` framework uses [Applitools Eyes](https://applitools.com/) to add visual checkpoints to your JavaScript Selenium tests. It takes care of getting screenshots of your application from the underlying WebDriver, sending them to the Applitools Eyes server for validation and failing the test when differences are detected. To perform visual comparisons within your tests, obtain an [Applitools Eyes](https://applitools.com/) API Key and assign it to the `eye_key` property of the `selenium-cucumber-es6.json` config file in the root of your project.
 
 For example the following configuration could be used with an increased timeout which allows enough time for visual checks:
 
@@ -343,43 +359,14 @@ module.exports = {
 
 ### Before/After hooks
 
-You can register before and after handlers for features and scenarios:
+You can register before and after handlers using Cucumber's built in features:
 
 | Event          | Example
 | -------------- | ------------------------------------------------------------
-| BeforeFeature  | ```this.BeforeFeatures(function(feature, callback) {})```
-| AfterFeature   | ```this.AfterFeature(function(feature, callback) {});```
-| BeforeScenario | ```this.BeforeScenario(function(scenario, callback) {});```
-| AfterScenario  | ```this.AfterScenario(function(scenario, callback) {});```
-
-```js
-module.exports = function () {
-
-    // add a before feature hook
-    this.BeforeFeature(function(feature, done) {
-        console.log('BeforeFeature: ' + feature.getName());
-        done();
-    });
-
-    // add an after feature hook
-    this.AfterFeature(function(feature, done) {
-        console.log('AfterFeature: ' + feature.getName());
-        done();
-    });
-
-    // add before scenario hook
-    this.BeforeScenario(function(scenario, done) {
-        console.log('BeforeScenario: ' + scenario.getName());
-        done();
-    });
-
-    // add after scenario hook
-    this.AfterScenario(function(scenario, done) {
-        console.log('AfterScenario: ' + scenario.getName());
-        done();
-    });
-};
-```
+| BeforeAll      | ```BeforeAll(function(feature, callback) {})```
+| AfterAll       | ```AfterAll(function(feature, callback) {});```
+| Before         | ```Before(function(scenario, callback) {});```
+| After          | ```After(function(scenario, callback) {});```
 
 ### Reports
 
@@ -389,24 +376,19 @@ HTML and JSON reports are automatically generated and stored in the default `./r
 
 ### How to debug
 
-Most selenium methods return a [JavaScript Promise](https://spring.io/understanding/javascript-promises "view JavaScript promise introduction") that is resolved when the method completes. The easiest way to step in with a debugger is to add a ```.then``` method to a selenium function and place a ```debugger``` statement within it, for example:
+Most selenium methods return a [JavaScript Promise](https://spring.io/understanding/javascript-promises "view JavaScript promise introduction") that is resolved when the method completes. The easiest way is to use ```async``` approach and place a ```debugger``` statement between it, for example:
 
 ```js
 module.exports = function () {
 
-    this.When(/^I search Google for "([^"]*)"$/, function (searchQuery, done) {
-
-        driver.findElement(by.name('q')).then(function(input) {
-            expect(input).to.exist;
-            debugger; // <<- your IDE should step in at this point, with the browser open
-            return input;
-        })
-        .then(function(input){
-            input.sendKeys(searchQuery);
-            input.sendKeys(selenium.Key.ENTER);
-
-            done(); // <<- let cucumber know you're done
-        });
+    this.When('I search Google for {string}', async function (searchQuery) {
+        
+        trace(page); // <<- will display page object with increased visibility
+        let input = await driver.findElement(by.name('q'));
+        expect(input).to.exist;
+        debugger; // <<- your IDE should step in at this point, with the browser open
+        input.sendKeys(searchQuery);
+        input.sendKeys(selenium.Key.ENTER);
     });
 };
 ```
@@ -436,45 +418,9 @@ You can use the framework without any command line arguments if your application
 This project includes an example to help you get started. You can run the example using the following command:
 
 ```bash
-node ./node_modules/selenium-cucumber-js/index.js
-```
-
-## Bugs
-
-Please raise bugs via the [selenium-cucumber-js issue tracker](https://github.com/john-doherty/selenium-cucumber-js/issues) and, if possible, please provide enough information to allow the bug to be reproduced.
-
-## Contributing
-
-Everyone is very welcome to contribute to this project. You can contribute just by submitting bugs or suggesting improvements by [opening an issue on GitHub](https://github.com/john-doherty/selenium-cucumber-js/issues).
-
-## Troubleshooting
-
-### IntelliJ Cucumber Plugin
-
-IntelliJ based IDE's have a plugin that allows the tester to control click on a `Given`, `When`, `Then` statement within a Cucumber feature file and have the user taken to the associated step definition. This plugin relies on your project having the following folder structure:
-
-```bash
-.
-└── features
-   │   google-search.feature
-   └── step_definitions
-   │   └── google-search-steps.js
-   └── page_objects
-   │   └── google-search.js
-   └── shared_objects
-   │   ├── test-data.js
-   │   └── stuff.json
-   └── reports
-       ├── cucumber-report.json
-       └── cucumber-report.html
-```
-
-This can be achieved by restructuring your project to match the layout above _(notice the underscores)_, and running your tests with the following switches:
-
-```bash
-node ./node_modules/selenium-cucumber-js/index.js -s ./features/step_definitions -p ./features/page_objects -o ./features/shared_objects -r ./features/reports
+node ./node_modules/selenium-cucumber-es6/index.js
 ```
 
 ## License
 
-Licensed under [ISC License](LICENSE) &copy; [John Doherty](http://www.johndoherty.info)
+Licensed under [ISC License](LICENSE) &copy; [John Doherty](http://www.johndoherty.info) & [Marcin Szweda](https://github.com/dcmarti/selenium-cucumber-es6)
