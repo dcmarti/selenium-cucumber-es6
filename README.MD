@@ -193,7 +193,7 @@ Page objects also have access to the same runtime variables available to step de
 An example page object:
 
 ```javascript
-// ./page-objects/google-search.js
+// ./page-objects/googleSearch.js
 
 module.exports = {
 
@@ -234,7 +234,7 @@ return await helpers.loadPage('http://www.google.com').then(function() {
 
 ### Shared objects
 
-Shared objects allow you to share anything from test data to helper methods throughout your project via a global ```shared``` object. Shared objects are automatically loaded from ```./shared-objects``` _(or the path specified using the ```-o``` switch)_ and made available via a camel-cased version of their filename, for example ```./shared-objects/test-data.js``` becomes ```shared.testData```. You can also use subdirectories, for example ```./shared-objects/dir/test-data.js``` becomes ```shared.dir.testData```.
+Shared objects allow you to share anything from test data to helper methods throughout your project via a global ```shared``` object. Shared objects are automatically loaded from ```./shared-objects``` _(or the path specified using the ```-o``` switch)_ and made available via a filename, for example ```./shared-objects/testData.js``` becomes ```shared.testData```. You can also use subdirectories, for example ```./shared-objects/dir/testData.js``` becomes ```shared.dir.testData```.
 
 
 Shared objects also have access to the same runtime variables available to step definitions.
@@ -242,7 +242,7 @@ Shared objects also have access to the same runtime variables available to step 
 An example shared object:
 
 ```javascript
-// ./shared-objects/test-data.js
+// ./shared-objects/testData.js
 
 module.exports = {
     username: "import-test-user",
