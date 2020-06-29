@@ -163,11 +163,7 @@ function importSupportObjects() {
 
 
 async function closeBrowser() {
-    // firefox quits on driver.close on the last window
-    await driver.close();
-    if (browserName !== 'firefox'){
-        await driver.quit();
-    }
+    await driver.quit();
 }
 
 
