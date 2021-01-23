@@ -19,7 +19,7 @@ function coerceInt(value, defaultValue) {
     return defaultValue;
 }
 
-const config = {
+let config = {
     environment: 'dev',
     steps: './step-definitions',
     pageObjects: './page-objects',
@@ -31,7 +31,7 @@ const config = {
     timeout: 15000
 };
 
-let configFileName = path.resolve(process.cwd(), 'selenium-cucumber-es6.json');
+const configFileName = path.resolve(process.cwd(), 'selenium-cucumber-es6.json');
 
 if (fs.isFileSync(configFileName)) {
     config = Object.assign(config, require(configFileName));
